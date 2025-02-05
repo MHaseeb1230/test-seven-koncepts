@@ -32,6 +32,7 @@ const StoreData = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [parentStoresList, setParentStoresList] = useState<any[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
 
   const fetchData = async (page: number) => {
     setLoading(true);
@@ -66,31 +67,107 @@ const StoreData = () => {
     fetchParentStoresList();
   }, []);
 
+  const handleEdit = () => {
+    setIsEditing(!isEditing);
+  };
+
+  const handleChange = (id: number, key: string, value: any) => {
+    setData((prevData) =>
+      prevData.map((item) =>
+        item.id === id ? { ...item, [key]: value } : item
+      )
+    );
+  };
+
   const columns: ColumnDef<StoreFamily, any>[] = [
     columnHelper.accessor("interval", {
       header: "Interval",
-      cell: (info) => (info.getValue() as string) || "N/A",
+      cell: (info) =>
+        isEditing ? (
+          <input
+            type="text"
+            value={info.getValue() as string}
+            onChange={(e) =>
+              handleChange(info.row.original.id, "interval", e.target.value)
+            }
+          />
+        ) : (
+          (info.getValue() as string) || "N/A"
+        ),
     }),
     columnHelper.accessor("companyName", {
       header: "Company Name",
-      cell: (info) => (info.getValue() as string) || "N/A",
+      cell: (info) =>
+        isEditing ? (
+          <input
+            type="text"
+            value={info.getValue() as string}
+            onChange={(e) =>
+              handleChange(info.row.original.id, "companyName", e.target.value)
+            }
+          />
+        ) : (
+          (info.getValue() as string) || "N/A"
+        ),
     }),
     columnHelper.accessor("created_at", {
       header: "Created At",
-      cell: (info) => new Date(info.getValue() as string).toLocaleDateString(),
+      cell: (info) =>
+        isEditing ? (
+          <input
+            type="date"
+            value={new Date(info.getValue() as string).toISOString().split('T')[0]}
+            onChange={(e) =>
+              handleChange(info.row.original.id, "created_at", e.target.value)
+            }
+          />
+        ) : (
+          new Date(info.getValue() as string).toLocaleDateString()
+        ),
     }),
     columnHelper.accessor("company", {
       header: "Company Nick Name",
       cell: (info) => {
         const value = info.getValue() as { nick_name?: string };
-        return value?.nick_name || "N/A";
+        return isEditing ? (
+          <input
+            type="text"
+            value={value?.nick_name || ""}
+            onChange={(e) =>
+              handleChange(info.row.original.id, "company", {
+                ...value,
+                nick_name: e.target.value,
+              })
+            }
+          />
+        ) : (
+          value?.nick_name || "N/A"
+        );
       },
     }),
     columnHelper.accessor("store", {
       header: "Parent Store",
       cell: (info) => {
         const value = info.getValue() as { storeName?: string };
-        return value?.storeName || "N/A";
+        return isEditing ? (
+          <select
+            value={value?.storeName || ""}
+            onChange={(e) =>
+              handleChange(info.row.original.id, "store", {
+                ...value,
+                storeName: e.target.value,
+              })
+            }
+          >
+            {parentStoresList.map((store) => (
+              <option key={store.id} value={store.storeName}>
+                {store.storeName}
+              </option>
+            ))}
+          </select>
+        ) : (
+          value?.storeName || "N/A"
+        );
       },
     }),
   ];
@@ -106,6 +183,12 @@ const StoreData = () => {
 
   return (
     <div className="p-4">
+      <button
+        onClick={handleEdit}
+        className="mb-4 p-2 bg-blue-500 text-white rounded"
+      >
+        {isEditing ? "Save" : "Edit"}
+      </button>
       <table className="border-collapse border border-gray-300 w-full">
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
